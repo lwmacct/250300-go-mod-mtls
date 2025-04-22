@@ -27,9 +27,10 @@ tasks:
         }
         {
           # 服务器
+          _subjectAltName="DNS:localhost,DNS:*.s.kuaicdn.cn,IP:0.0.0.0,IP:127.0.0.1"
           openssl genrsa -out server.key 2048
-          openssl req -new -key server.key -out server.csr -subj "/CN=server" -config <(printf "[req]\ndistinguished_name=req\n[req]\nreq_extensions=v3_req\n[v3_req]\nsubjectAltName=DNS:localhost,IP:0.0.0.0,IP:127.0.0.1\n")
-          openssl x509 -req -days 36500 -in server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt -extensions v3_req -extfile <(printf "[v3_req]\nsubjectAltName=DNS:localhost,IP:0.0.0.0,IP:127.0.0.1\n")
+          openssl req -new -key server.key -out server.csr -subj "/CN=server" -config <(printf "[req]\ndistinguished_name=req\n[req]\nreq_extensions=v3_req\n[v3_req]\nsubjectAltName=$_subjectAltName\n")
+          openssl x509 -req -days 36500 -in server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt -copy_extensions copyall
         }
         {
           # 客户端
