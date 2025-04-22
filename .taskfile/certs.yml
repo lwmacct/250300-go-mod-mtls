@@ -1,0 +1,43 @@
+# https://taskfile.dev
+
+version: "3"
+
+vars:
+  GREETING: Hello, World!
+
+tasks:
+  gen:
+    desc: "生成证书"
+    cmds:
+      - |
+        _path=pkg/certs/embed/certs
+        mkdir -p "$_path"
+        cd "$_path"
+        {
+          # 如果 ca.key 存在, 那么退出
+          if [ -f "ca.key" ]; then
+            echo "ca.key 已存在, 退出"
+            exit 0
+          fi
+        }
+        {
+          # 生成CA私钥和证书 (100年有效期)
+          openssl genrsa -out ca.key 2048
+          openssl req -new -x509 -days 36500 -key ca.key -out ca.crt -subj "/CN=CA"
+        }
+        {
+          # 服务器
+          _subjectAltName="DNS:localhost,DNS:*.s.kuaicdn.cn,IP:0.0.0.0,IP:127.0.0.1"
+          openssl genrsa -out server.key 2048
+          openssl req -new -key server.key -out server.csr -subj "/CN=server" -config <(printf "[req]\ndistinguished_name=req\n[req]\nreq_extensions=v3_req\n[v3_req]\nsubjectAltName=$_subjectAltName\n")
+          openssl x509 -req -days 36500 -in server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt -copy_extensions copyall
+        }
+        {
+          # 客户端
+          openssl genrsa -out client.key 2048
+          openssl req -new -key client.key -out client.csr -subj "/CN=client"
+          openssl x509 -req -days 36500 -in client.csr -CA ca.crt -CAkey ca.key -set_serial 02 -out client.crt
+        }
+        rm server.csr client.csr
+        echo "证书已生成到 "$_path" 目录"
+    silent: false
